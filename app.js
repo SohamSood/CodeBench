@@ -1,7 +1,5 @@
 async function runCode() {
-    const code = document.getElementById("code").value;
-    const output = document.getElementById("output");
-    output.textContent = "Running...";
+    const code = document.getElementById("codeEditor").value;
     try {
         const response = await fetch(
             "https://ce.judge0.com/submissions/?base64_encoded=false&wait=true",
@@ -20,19 +18,16 @@ async function runCode() {
         const result = await response.json();
         console.log(result);
         if (result.stdout) {
-            output.textContent = result.stdout;
+            console.log("OUTPUT:", result.stdout);
         } else if (result.compile_output) {
-            output.textContent = result.compile_output;
+            console.log("COMPILE ERROR:", result.compile_output);
         } else if (result.stderr) {
-            output.textContent = result.stderr;
+            console.log("RUNTIME ERROR:", result.stderr);
         } else {
-            output.textContent = JSON.stringify(
-                result,
-                null,
-                2
-            );
+            console.log("UNKNOWN ERROR:", result);
         }
     } catch (error) {
-        output.textContent = "ERROR: " + error;
+        console.error("ERROR:", error);
     }
 }
+document.getElementById("runBtn").addEventListener("click", runCode);

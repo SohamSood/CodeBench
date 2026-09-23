@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -42,4 +42,157 @@ int main() {
 
 </body>
 
+</html> -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CodeBench - Online Coding Platform</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <header class="navbar">
+    <div class="nav-left">
+      <div class="logo">
+        <span class="logo-bracket">&lt;/&gt;</span>
+        <span class="logo-text">CodeBench</span>
+      </div>
+      <div class="problem-select-wrapper">
+        <label for="problemSelect">Problem:</label>
+        <select id="problemSelect">
+        </select>
+      </div>
+    </div>
+    <div class="nav-right">
+      <div class="language-select-wrapper">
+        <label for="languageSelect">Language:</label>
+        <select id="languageSelect">
+          <option value="js" selected>JavaScript</option>
+          <option value="python">Python</option>
+          <option value="cpp">C++</option>
+          <option value="java">Java</option>
+        </select>
+      </div>
+
+      <button id="resetCodeBtn" class="btn btn-secondary" title="Reset to starter template">Reset Template</button>
+    </div>
+  </header>
+
+  <main class="main-container">
+    <section class="panel left-panel">
+      <div class="panel-header">
+        <div class="title-row">
+          <h1 id="problemTitle">Loading problem...</h1>
+          <span id="problemDifficulty" class="badge badge-easy">Easy</span>
+        </div>
+      </div>
+
+      <div class="panel-content">
+        <div class="section-block">
+          <h2 class="section-title">Description</h2>
+          <div id="problemDescription" class="problem-text"></div>
+        </div>
+
+        <div class="section-block">
+          <h2 class="section-title">Examples</h2>
+          <div id="problemExamples" class="examples-container"></div>
+        </div>
+
+        <div class="section-block">
+          <h2 class="section-title">Constraints</h2>
+          <ul id="problemConstraints" class="constraints-list"></ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel right-panel">
+      <div class="panel-header editor-header">
+        <div class="editor-title-row">
+          <span class="editor-title">Solution</span>
+          <span id="activeLangTag" class="active-lang-tag">JavaScript</span>
+        </div>
+        <div class="action-buttons">
+          <button id="runBtn" class="btn btn-run">
+            <span class="btn-icon">&#9658;</span> Run
+          </button>
+          <button id="submitBtn" class="btn btn-submit">
+            Submit
+          </button>
+        </div>
+      </div>
+
+      <div class="editor-container">
+        <div id="lineNumbers" class="line-numbers" aria-hidden="true">1</div>
+        
+        <div class="editor-stage">
+          <pre id="codePre" class="code-pre" aria-hidden="true"><code id="codeHighlight" class="code-highlight"></code></pre>
+          <textarea id="codeEditor" placeholder="// Write your code here..." spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+        </div>
+      </div>
+
+      <div class="bottom-panel">
+        <div class="tab-header">
+          <button id="tabTestCasesBtn" class="tab-btn active">Test Cases</button>
+          <button id="tabOutputBtn" class="tab-btn">Output</button>
+        </div>
+
+        <div id="testCasesView" class="tab-content active">
+          <div class="testcases-header">
+            <span>Visible Test Cases (<span id="testCaseCount">0</span>/20)</span>
+            <button id="addTestCaseBtn" class="btn btn-small btn-secondary">+ Add Test Case</button>
+          </div>
+          <div id="testCasesContainer" class="testcases-list">
+          </div>
+        </div>
+
+        <div id="outputView" class="tab-content">
+          <div id="outputPlaceholder" class="output-placeholder">
+            Click <strong>Run</strong> to test with visible test cases, or <strong>Submit</strong> to evaluate all test cases.
+          </div>
+
+          <div id="outputDetails" class="output-details" style="display: none;">
+            <div class="result-header-card">
+              <div class="result-status-row">
+                <span id="outputStatus" class="status-badge status-accepted">Accepted</span>
+                <span id="outputMessage" class="status-message">All test cases passed</span>
+              </div>
+              <div class="result-metrics">
+                <div class="metric">
+                  <span class="metric-label">Passed:</span>
+                  <span id="metricPassed" class="metric-value">2 / 2</span>
+                </div>
+                <div class="metric">
+                  <span class="metric-label">Runtime:</span>
+                  <span id="metricTime" class="metric-value">42 ms</span>
+                </div>
+                <div class="metric">
+                  <span class="metric-label">Memory:</span>
+                  <span id="metricMemory" class="metric-value">12 MB</span>
+                </div>
+              </div>
+            </div>
+
+            <div id="errorBox" class="error-box" style="display: none;">
+              <div class="error-title">Error Log:</div>
+              <pre id="errorContent" class="error-pre"></pre>
+            </div>
+
+            <div id="testResultsContainer" class="test-results-container">
+              <h3 class="sub-heading">Test Case Breakdown</h3>
+              <div id="resultsList" class="results-list">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
 </html>
+-->>
