@@ -1,0 +1,27 @@
+{
+  "id": "maximum-element",
+  "title": "Maximum Element",
+  "difficulty": "Easy",
+  "description": "Given an array of integers `nums`, find and return the maximum element present in the array.",
+  "examples": [
+    {
+      "input": "nums = [1, 8, 3, 9, 4]",
+      "output": "9",
+      "explanation": "The maximum value in the array is 9."
+    },
+    {
+      "input": "nums = [-5, -2, -10, -1]",
+      "output": "-1",
+      "explanation": "The maximum value in the array is -1."
+    }
+  ],
+  "constraints": [
+    "1 <= nums.length <= 100000",
+    "-1000000000 <= nums[i] <= 1000000000"
+  ],
+  "languages": [
+    "cpp",
+    "java",
+    "python"
+  ]
+}
