@@ -1,24 +1,26 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CodeBench - Online Coding Platform</title>
+  <title>CodeJudge - Online Coding Platform</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
+  <!-- Top Navigation Bar -->
   <header class="navbar">
     <div class="nav-left">
       <div class="logo">
         <span class="logo-bracket">&lt;/&gt;</span>
-        <span class="logo-text">CodeBench</span>
+        <span class="logo-text">CodeJudge</span>
       </div>
       <div class="problem-select-wrapper">
         <label for="problemSelect">Problem:</label>
         <select id="problemSelect">
+          <!-- Populated dynamically by JavaScript -->
         </select>
       </div>
     </div>
@@ -37,7 +39,9 @@
     </div>
   </header>
 
+  <!-- Main Split Layout -->
   <main class="main-container">
+    <!-- Left Column: Problem Description -->
     <section class="panel left-panel">
       <div class="panel-header">
         <div class="title-row">
@@ -47,16 +51,19 @@
       </div>
 
       <div class="panel-content">
+        <!-- Problem Description -->
         <div class="section-block">
           <h2 class="section-title">Description</h2>
           <div id="problemDescription" class="problem-text"></div>
         </div>
 
+        <!-- Examples -->
         <div class="section-block">
           <h2 class="section-title">Examples</h2>
           <div id="problemExamples" class="examples-container"></div>
         </div>
 
+        <!-- Constraints -->
         <div class="section-block">
           <h2 class="section-title">Constraints</h2>
           <ul id="problemConstraints" class="constraints-list"></ul>
@@ -64,7 +71,9 @@
       </div>
     </section>
 
+    <!-- Right Column: Code Editor + Test Cases + Judge Output -->
     <section class="panel right-panel">
+      <!-- Editor Header -->
       <div class="panel-header editor-header">
         <div class="editor-title-row">
           <span class="editor-title">Solution</span>
@@ -80,36 +89,45 @@
         </div>
       </div>
 
+      <!-- Code Editor with Syntax Highlighting & Line Numbers -->
       <div class="editor-container">
+        <!-- Line Numbers Gutter -->
         <div id="lineNumbers" class="line-numbers" aria-hidden="true">1</div>
         
+        <!-- Editor Stage: Overlay of syntax-highlighted <pre> and transparent <textarea> -->
         <div class="editor-stage">
           <pre id="codePre" class="code-pre" aria-hidden="true"><code id="codeHighlight" class="code-highlight"></code></pre>
           <textarea id="codeEditor" placeholder="// Write your code here..." spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
         </div>
       </div>
 
+      <!-- Lower Split: Test Cases & Judge Output -->
       <div class="bottom-panel">
+        <!-- Tab Navigation for Test Cases & Output -->
         <div class="tab-header">
           <button id="tabTestCasesBtn" class="tab-btn active">Test Cases</button>
-          <button id="tabOutputBtn" class="tab-btn">Output</button>
+          <button id="tabOutputBtn" class="tab-btn">Judge Output</button>
         </div>
 
+        <!-- Test Cases View -->
         <div id="testCasesView" class="tab-content active">
           <div class="testcases-header">
             <span>Visible Test Cases (<span id="testCaseCount">0</span>/20)</span>
             <button id="addTestCaseBtn" class="btn btn-small btn-secondary">+ Add Test Case</button>
           </div>
           <div id="testCasesContainer" class="testcases-list">
+            <!-- Populated dynamically by JavaScript -->
           </div>
         </div>
 
+        <!-- Judge Output View -->
         <div id="outputView" class="tab-content">
           <div id="outputPlaceholder" class="output-placeholder">
             Click <strong>Run</strong> to test with visible test cases, or <strong>Submit</strong> to evaluate all test cases.
           </div>
 
           <div id="outputDetails" class="output-details" style="display: none;">
+            <!-- Output Summary Status Card -->
             <div class="result-header-card">
               <div class="result-status-row">
                 <span id="outputStatus" class="status-badge status-accepted">Accepted</span>
@@ -131,14 +149,17 @@
               </div>
             </div>
 
+            <!-- Error Box (if compilation / runtime error) -->
             <div id="errorBox" class="error-box" style="display: none;">
               <div class="error-title">Error Log:</div>
               <pre id="errorContent" class="error-pre"></pre>
             </div>
 
+            <!-- Individual Test Case Results List -->
             <div id="testResultsContainer" class="test-results-container">
               <h3 class="sub-heading">Test Case Breakdown</h3>
               <div id="resultsList" class="results-list">
+                <!-- Dynamically populated -->
               </div>
             </div>
           </div>

@@ -414,7 +414,7 @@ select:hover, select:focus {
 #codeEditor {
   z-index: 2;
   background: transparent;
-  color: white;
+  color: transparent;
   caret-color: #38bdf8;
   resize: none;
 }

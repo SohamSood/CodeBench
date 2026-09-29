@@ -8,10 +8,10 @@ function escapeHtml(text) {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
-} //before making it safe to render in HTML, we need to escape special characters like <, >, and & to prevent XSS attacks and ensure proper rendering.
+}
 
 function highlight(code, language) {
-  if (!code) return ""; //no code
+  if (!code) return "";
 
   // Regex patterns based on language
   let commentRegex, stringRegex, keywordRegex, typeRegex, builtInRegex, preprocRegex;
