@@ -1,5 +1,5 @@
 // ===================================================================
-// CodeJudge - Syntax Highlighter Web Worker
+// CodeBench - Syntax Highlighter Web Worker
 // Performs tokenization and syntax highlighting off the main thread.
 // ===================================================================
 

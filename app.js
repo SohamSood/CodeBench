@@ -1,5 +1,5 @@
 // ===================================================================
-// CodeJudge - Frontend Application Logic (Vanilla JavaScript)
+// CodeBench - Frontend Application Logic (Vanilla JavaScript)
 // Demonstrates Core JavaScript & Browser Concepts:
 // - Promises, async/await, setTimeout
 // - Browser APIs: localStorage, Web Worker, Service Worker, Fetch API
@@ -74,10 +74,6 @@ const errorBox = document.getElementById("errorBox");
 const errorContent = document.getElementById("errorContent");
 const resultsList = document.getElementById("resultsList");
 
-// ===================================================================
-// Concept 1 & 2: Object-Oriented Programming (Classes & Inheritance)
-// ===================================================================
-
 /**
  * BaseRunner - Base class encapsulating common execution metadata.
  * Demonstrates: class declaration, constructor, and prototype methods.
@@ -98,10 +94,6 @@ class BaseRunner {
   }
 }
 
-/**
- * JudgeRunner - Extends BaseRunner to communicate directly with Judge0 API.
- * Demonstrates: Inheritance (extends, super), method overriding, async/await.
- */
 class JudgeRunner extends BaseRunner {
   constructor(language, languageId) {
     super(language, languageId);
@@ -127,10 +119,6 @@ class JudgeRunner extends BaseRunner {
     return await response.json();
   }
 }
-
-// ===================================================================
-// Concept 3: Promises & setTimeout Utilities
-// ===================================================================
 
 /**
  * Utility: Promise-based delay using setTimeout
@@ -163,11 +151,6 @@ function sendToWorker(worker, messageData) {
   });
 }
 
-// ===================================================================
-// Concept 4: Second Public REST API (DummyJSON Quotes API)
-// Demonstrates: fetch() -> async/await -> JSON parsing -> UI display
-// ===================================================================
-
 async function fetchInspirationQuote() {
   try {
     const response = await fetch("https://dummyjson.com/quotes/random");
@@ -195,10 +178,6 @@ async function fetchInspirationQuote() {
   }
 }
 
-// ===================================================================
-// Concept 5: Service Worker Registration
-// Demonstrates: Browser Service Worker registration for offline asset caching
-// ===================================================================
 
 function registerServiceWorker() {
   if ("serviceWorker" in navigator) {
@@ -208,11 +187,6 @@ function registerServiceWorker() {
       .catch((err) => console.info("Service Worker registration skipped (e.g. file:// protocol):", err.message));
   }
 }
-
-// ===================================================================
-// Concept 6: Web Worker Syntax Highlighting (with Sync Fallback)
-// Demonstrates: Web Worker postMessage / onmessage off the main UI thread
-// ===================================================================
 
 function initHighlightWorker() {
   try {
@@ -590,10 +564,6 @@ function renderProblemDetails(data) {
   }
 }
 
-// ===================================================================
-// Concept 7: Storage (localStorage for Code Persistence)
-// Demonstrates: localStorage.getItem and localStorage.setItem
-// ===================================================================
 
 function onLanguageChange(e) {
   currentLanguage = e.target.value;

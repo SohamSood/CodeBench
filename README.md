@@ -1,84 +1,132 @@
-# CodeJudge 🚀
+# CodeBench
 
-A lightweight, LeetCode-like online coding platform frontend built with **Vanilla HTML, CSS, and JavaScript**.
+CodeBench is a browser-based coding practice platform built with HTML, CSS, and vanilla JavaScript. It allows users to select programming problems, write solutions in multiple languages, execute them against test cases, and inspect detailed judge results.
 
----
+## 📸 Preview
 
-## 🌟 Features Added
+### Judge Feedback
 
-1. **Real-time Syntax Highlighting (Colors while coding)**:
-   - Tokenizes and highlights keywords, types, strings, numbers, comments, built-ins, and functions.
-   - Built with a fast, zero-dependency tokenizer.
-2. **Web Worker Integration (`highlighter.worker.js`)**:
-   - Tokenization and syntax highlighting run completely off the main thread in a dedicated Web Worker to ensure 60fps lag-free typing.
-   - Includes automatic, graceful fallback to synchronous main-thread highlighting if opened directly via `file:///`.
-3. **Auto-Indentation**:
-   - Pressing **Enter** maintains the current line's leading indentation.
-   - Pressing **Enter** after `{` or `:` automatically increases indentation by 4 spaces.
-   - Pressing **Enter** between `{` and `}` expands into a properly indented block:
-     ```text
-     {
-         |
-     }
-     ```
-   - Pressing **Tab** inserts 4 spaces or indents multi-line selections.
-   - Pressing **Shift + Tab** unindents lines by 4 spaces.
-4. **Brackets & Quotes Automation ("Brackets Stuff")**:
-   - Auto-closing pairs for `( )`, `[ ]`, `{ }`, `" "`, and `' '`.
-   - **Overtype Skip**: Typing a closing bracket when the cursor is already before it skips over it instead of duplicating.
-   - **Pair Backspace**: Pressing Backspace between empty pairs (`()`, `[]`, `{}`, `""`, `''`) deletes both brackets.
-   - **Rainbow Bracket Colors**: Different bracket types have distinct, harmonious colors (Yellow `{ }`, Violet `( )`, Sky Blue `[ ]`).
-5. **IDE Line Numbers**:
-   - Dedicated gutter showing line numbers, synchronized with scrolling.
-6. **Compiler / Judge Integration**:
-   - Configurable local judge API endpoint (`http://localhost:5000/judge`).
-   - Integrated with **OnlineCompiler.io API** using your active API key (`8f4116741c0bc3c69222801807ef3f33`).
+![CodeBench showing a wrong-answer result with test case feedback](screenshots/wrong-answer.png)
 
----
+CodeBench displays failed test cases, expected versus actual output, runtime, memory, and submission status.
+
+### Successful Submission
+
+![CodeBench showing an accepted submission and execution statistics](screenshots/accepted.png)
+
+Successful submissions show the number of passed test cases along with execution statistics.
+
+**Live demo:** [Try CodeBench →](https://codebench-five.vercel.app/)
+
+## ✨ Features
+
+- Multi-language support for JavaScript, Python, C++, and Java.
+- Custom browser-based code editor with syntax highlighting powered by a Web Worker.
+- Line numbers, auto-indentation, and bracket pairing with overtype/skip behavior.
+- Problem-specific starter templates.
+- Run against visible test cases or submit against the full test suite.
+- Add custom test cases.
+- Detailed judge results, including expected versus actual output, submission status, and runtime and memory when provided by Judge0.
+- Automatically save and restore drafts using browser `localStorage`, with a separate key for each problem and language.
+- Extensible problem structure with separate problem definitions, test files, and language templates.
+- AI-assisted code analysis is planned. The current Analyze Code button is a placeholder; no AI service is connected.
+
+## ⚙️ How It Works
+
+```mermaid
+flowchart TD
+	A[User] --> B[Select problem and language]
+	B --> C[Write or edit code]
+	C --> D{Run or Submit}
+	D -->|Run: visible test cases| E[Prepare source code and test input]
+	D -->|Submit: full test suite| E
+	E --> F[Judge0 API]
+	F --> G[Parse execution result]
+	G --> H[Judge Output]
+	H --> I[Display status, test breakdown, runtime, and memory]
+```
+
+- **Run** checks the visible/sample test cases.
+- **Submit** checks the complete test suite for the selected problem.
+
+The browser prepares the source code and test input, sends them to Judge0 for execution, and processes the returned result for display in Judge Output.
+
+## 🧠 Engineering Concepts
+
+### 1. Asynchronous API-Based Execution
+
+CodeBench sends source code and input to Judge0 and processes the response; it does not run the selected languages directly in the browser. This keeps language execution separate from the frontend.
+
+### 2. Web Workers
+
+Syntax highlighting runs in a Web Worker so highlighting work does not unnecessarily block the browser's main UI thread.
+
+### 3. Client-Side Persistence
+
+Drafts are stored in `localStorage` under a problem- and language-specific key, allowing users to return to their code without an application backend or database.
+
+### 4. Modular Problem Architecture
+
+Each problem has its own definition, test cases, and language templates. Problem data is kept separate from the editor and execution flow, making it straightforward to add problems using the existing structure.
+
+### 5. Separation of Concerns
+
+The application separates UI and editor behavior, problem data, test cases, execution communication, and syntax highlighting into distinct parts of the project.
+
+## 🛠️ Tech Stack
+
+- HTML5
+- CSS3
+- Vanilla JavaScript
+- Web Workers
+- Judge0 API (code execution)
+- AI API (code analysis)
+- Browser `localStorage`
+- Service Worker
+- Vercel (deployment target)
+
+## 🎯 Using CodeBench
+
+1. Select a problem.
+2. Select a language and write your solution.
+3. Choose **Run** or **Submit**.
+4. Inspect **Judge Output** and optionally add custom test cases.
+
+## 📊 Execution and Data
+
+- Judge0 is the external code execution service; an internet connection is required.
+- Source code and test input are sent to Judge0 when code is run or submitted.
+- Drafts remain in the browser's `localStorage`.
+- No application backend currently stores user code or submissions.
+- AI analysis is not connected; the Analyze Code button is a placeholder.
 
 ## 📁 Project Structure
 
 ```text
-Compiler/
-│
-├── index.html                 # Main application UI & layout
-├── styles.css                 # Dark theme & syntax highlighting tokens
-├── app.js                     # Core application logic & bracket/indent engine
-├── highlighter.worker.js      # Web Worker for background syntax highlighting
-│
-├── problems/                  # Problem catalog
+.
+├── index.html              # Application interface
+├── styles.css              # Layout and visual styles
+├── app.js                  # Editor, problem, and execution logic
+├── highlighter.worker.js   # Background syntax highlighting
+├── sw.js                   # Static asset caching
+├── problems/
 │   ├── two-sum/
-│   │   ├── problem.json
-│   │   ├── tests.json
-│   │   ├── cpp/template.cpp
-│   │   ├── java/template.java
-│   │   └── python/template.py
 │   ├── binary-search/
-│   │   └── ...
 │   └── maximum-element/
-│       └── ...
-│
 └── README.md
 ```
 
----
+Each problem directory contains a `problem.json` definition, `tests.json`, and language-specific starter templates.
+The tree shows the three problems currently included; more problems are planned and can follow the same structure.
 
-## ⚙️ Compiler / Judge Configuration
 
-In [app.js](file:///c:/Users/soodn/vscode/Compiler/app.js#L8-L23):
+## 🗺️ Future Improvements
 
-```javascript
-// Local Judge API
-const API_URL = "http://localhost:5000/judge";
+The following ideas are planned and are not currently implemented:
 
-// OnlineCompiler.io Live API Configuration
-const ONLINECOMPILER_CONFIG = {
-  url: "https://api.onlinecompiler.io/api/run-code-sync/",
-  apiKey: "8f4116741c0bc3c69222801807ef3f33",
-  compilers: {
-    cpp: "g++-15",
-    java: "openjdk-25",
-    python: "python-3.14"
-  }
-};
-```
+- AI-assisted code explanation and complexity analysis.
+- More programming problems.
+- Submission history.
+- User progress tracking.
+- Code diffs between submissions.
+- More advanced editor features.

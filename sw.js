@@ -1,9 +1,9 @@
 // ===================================================================
-// CodeJudge - Service Worker
+// CodeBench - Service Worker
 // Caches core static assets for offline capability without intercepting Judge0 API or problem assets
 // ===================================================================
 
-const CACHE_NAME = "codejudge-cache-v2";
+const CACHE_NAME = "codebench-cache-v2";
 const STATIC_ASSETS = [
   "./",
   "./index.html",
