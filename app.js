@@ -7,7 +7,7 @@
 // - Try / Catch Error Handling
 // - Direct Judge0 API Execution & Second Public REST API
 // ===================================================================
-
+// import { runWithWasm } from "./wasmRunner.js";
 // Base path helper: problem files load directly from problems/
 const BASE_PATH = "";
 
@@ -19,7 +19,6 @@ const PROBLEMS = [
 ];
 
 // Judge0 Language IDs and extensions mapping
-// 63: JavaScript (Node.js 12.14.0), 71: Python (3.8.1), 54: C++ (GCC 9.2.0), 62: Java (OpenJDK 13.0.1)
 const LANGUAGE_CONFIG = {
   js: { name: "JavaScript", ext: "js", id: 63 },
   python: { name: "Python", ext: "py", id: 71 },
@@ -103,20 +102,29 @@ class JudgeRunner extends BaseRunner {
   // Executes code via Judge0 public API
   async execute(sourceCode, stdin = "") {
     const payload = this.formatPayload(sourceCode, stdin);
-
-    const response = await fetch(this.apiUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(payload)
-    });
-
-    if (!response.ok) {
-      throw new Error(`Judge0 HTTP ${response.status}: ${response.statusText}`);
+    try {
+      const response = await fetch(this.apiUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      });
+      if (!response.ok) {
+        throw new Error(`Judge0 HTTP ${response.status}: ${response.statusText}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Error executing code:", error);
+      // console.log("Judge0 unavailable. Falling back to WASM...");
+      // try {
+        // if (this.language === "cpp") {
+          // return await runWithWasm(sourceCode, stdin, this.language);
+        // }
+      // } catch (error) {
+      //   throw error;
+      // }
     }
-
-    return await response.json();
   }
 }
 
@@ -986,7 +994,7 @@ async function executeWithJudge(mode) {
   setLoadingState(true, mode === "run" ? "Running visible test cases via Judge0..." : "Evaluating submission on Judge0...");
 
   // Concept: small status transition using setTimeout / Promise delay
-  await delay(150);
+  await delay(50);
 
   try {
     // 1. Determine test cases

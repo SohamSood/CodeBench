@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  body { margin: 0; height: 100vh; background: #18181b; color: white; font-family: sans-serif; display: flex; }
+  .right-panel { display: flex; flex-direction: column; width: 600px; height: 100vh; background: #27272a; border: 1px solid #3f3f46; }
+  .header { height: 48px; background: #202023; border-bottom: 1px solid #3f3f46; padding: 10px; box-sizing: border-box; }
+  .editor-container {
+    height: 50%;
+    min-height: 120px;
+    max-height: calc(100% - 160px);
+    resize: vertical;
+    overflow: hidden;
+    background: #121214;
+    padding: 10px;
+    box-sizing: border-box;
+    border-bottom: 1px solid #3f3f46;
+  }
+  .bottom-panel {
+    flex: 1;
+    min-height: 120px;
+    background: #1e1e21;
+    padding: 10px;
+    box-sizing: border-box;
+    overflow: auto;
+  }
+</style>
+</head>
+<body>
+  <div class="right-panel">
+    <div class="header">Editor Header</div>
+    <div class="editor-container">
+      Code Editor (resize: vertical)
+    </div>
+    <div class="bottom-panel">
+      Test Cases & Judge Output (flex: 1)
+    </div>
+  </div>
+</body>
+</html>

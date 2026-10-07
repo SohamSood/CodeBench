@@ -13,7 +13,7 @@
   --text-primary: #f4f4f5;
   --text-secondary: #a1a1aa;
   --text-muted: #71717a;
-i f
+  
   --accent-green: #22c55e;
   --accent-green-hover: #16a34a;
   --accent-green-bg: rgba(34, 197, 94, 0.15);
@@ -111,8 +111,7 @@ select:hover, select:focus {
 
 /* ================= Main Split Layout ================= */
 .main-container {
-  display: grid;
-  grid-template-columns: 45% 55%;
+  display: flex;
   flex: 1;
   overflow: hidden;
   height: calc(100vh - 54px);
@@ -127,7 +126,17 @@ select:hover, select:focus {
 }
 
 .left-panel {
+  width: 45%;
+  min-width: 280px;
+  max-width: calc(100% - 340px);
+  resize: horizontal;
+  overflow: auto;
   border-right: 1px solid var(--border-color);
+}
+
+.right-panel {
+  flex: 1;
+  min-width: 340px;
 }
 
 .panel-header {
@@ -330,13 +339,24 @@ select:hover, select:focus {
 }
 
 .btn-submit {
-  background-color: var(--accent-green);
-  color: #000;
+  background-color: #2cbb5d;
+  color: #ffffff;
   font-weight: 600;
+  border-color: #26a350;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25), 0 2px 6px rgba(44, 187, 93, 0.25);
+  transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .btn-submit:hover:not(:disabled) {
-  background-color: var(--accent-green-hover);
+  background-color: #26a350;
+  border-color: #1f8b44;
+  box-shadow: 0 2px 8px rgba(44, 187, 93, 0.4);
+}
+
+.btn-submit:active:not(:disabled) {
+  background-color: #1f8b44;
+  border-color: #1a7539;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
 }
 
 .btn-small {
@@ -346,8 +366,10 @@ select:hover, select:focus {
 
 /* ================= Editor Stage with Highlighting & Line Numbers ================= */
 .editor-container {
-  flex: 1;
-  min-height: 240px;
+  height: calc(100% - 328px);
+  min-height: 140px;
+  max-height: calc(100% - 160px);
+  resize: vertical;
   position: relative;
   background-color: #121214;
   display: flex;
@@ -478,12 +500,13 @@ select:hover, select:focus {
 
 /* ================= Bottom Panel (Test Cases & Output) ================= */
 .bottom-panel {
-  height: 280px;
+  flex: 1;
+  min-height: 120px;
   display: flex;
   flex-direction: column;
   background-color: #1e1e21;
   border-top: 1px solid var(--border-color);
-  flex-shrink: 0;
+  overflow: hidden;
 }
 
 .tab-header {
