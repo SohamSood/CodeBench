@@ -73,10 +73,11 @@ body {
   font-size: 1.1rem;
 }
 
-.logo-bracket {
-  color: var(--accent-green);
-  font-family: var(--font-mono);
-  font-weight: 600;
+.logo-icon {
+  width: 24px;
+  height: 24px;
+  display: block;
+  border-radius: 6px;
 }
 
 .logo-text {

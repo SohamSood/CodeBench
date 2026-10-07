@@ -93,10 +93,31 @@ class BaseRunner {
   }
 }
 
+function toBase64(str) {
+  return btoa(unescape(encodeURIComponent(str || "")));
+}
+
+function fromBase64(str) {
+  if (!str) return "";
+  try {
+    return decodeURIComponent(escape(atob(str)));
+  } catch {
+    return atob(str);
+  }
+}
+
 class JudgeRunner extends BaseRunner {
   constructor(language, languageId) {
     super(language, languageId);
-    this.apiUrl = "https://ce.judge0.com/submissions/?base64_encoded=false&wait=true";
+    this.apiUrl = "https://ce.judge0.com/submissions/?base64_encoded=true&wait=true";
+  }
+
+  formatPayload(sourceCode, stdin = "") {
+    return {
+      language_id: this.languageId,
+      source_code: toBase64(sourceCode),
+      stdin: toBase64(stdin)
+    };
   }
 
   // Executes code via Judge0 public API
@@ -113,17 +134,15 @@ class JudgeRunner extends BaseRunner {
       if (!response.ok) {
         throw new Error(`Judge0 HTTP ${response.status}: ${response.statusText}`);
       }
-      return await response.json();
+      const data = await response.json();
+      if (data.stdout) data.stdout = fromBase64(data.stdout);
+      if (data.stderr) data.stderr = fromBase64(data.stderr);
+      if (data.compile_output) data.compile_output = fromBase64(data.compile_output);
+      if (data.message) data.message = fromBase64(data.message);
+      return data;
     } catch (error) {
       console.error("Error executing code:", error);
-      // console.log("Judge0 unavailable. Falling back to WASM...");
-      // try {
-        // if (this.language === "cpp") {
-          // return await runWithWasm(sourceCode, stdin, this.language);
-        // }
-      // } catch (error) {
-      //   throw error;
-      // }
+      throw error;
     }
   }
 }
@@ -354,6 +373,11 @@ function onCodeInput() {
 // Advanced Editor Behavior: Tab, Indentation & Auto-Closing Brackets
 // ===================================================================
 function handleEditorKeydown(e) {
+  // Allow Ctrl/Cmd combinations to bypass editor formatting and trigger global shortcuts
+  if (e.ctrlKey || e.metaKey) {
+    return;
+  }
+
   const start = this.selectionStart;
   const end = this.selectionEnd;
   const val = this.value;
@@ -1048,6 +1072,11 @@ async function executeWithJudge(mode) {
 
 // Parses and maps Judge0 response into the UI
 function handleJudgeResponse(result, casesToRun) {
+  if (!result) {
+    showErrorMessage("No response received from Judge0.");
+    return;
+  }
+
   // Check for Compilation or Runtime Errors
   if (result.compile_output) {
     showErrorMessage(`Compilation Error:\n\n${result.compile_output}`);
@@ -1256,6 +1285,19 @@ function init() {
   codeEditor.addEventListener("input", onCodeInput);
   codeEditor.addEventListener("keydown", handleEditorKeydown);
   codeEditor.addEventListener("scroll", syncEditorScroll);
+
+  // Global Keyboard Shortcuts: Ctrl + ' to Run, Ctrl + Enter to Submit
+  window.addEventListener("keydown", (e) => {
+    if (e.ctrlKey || e.metaKey) {
+      if (e.key === "'") {
+        e.preventDefault();
+        runCode();
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        submitCode();
+      }
+    }
+  });
 
   // 5. Load the initial problem
   loadProblem(currentProblemId);
