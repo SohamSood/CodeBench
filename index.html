@@ -24,6 +24,25 @@
           <!-- Populated dynamically by JavaScript -->
         </select>
       </div>
+
+      <!-- LeetCode-style Timer / Stopwatch -->
+      <div class="timer-control" id="timerControl" role="timer" aria-label="Coding stopwatch">
+        <button id="timerToggleBtn" class="timer-btn timer-toggle-btn" type="button" title="Start (▶)" aria-label="Start stopwatch">
+          <svg class="timer-icon icon-play" viewBox="0 0 24 24" width="13" height="13" fill="currentColor">
+            <path d="M8 5v14l11-7z"/>
+          </svg>
+          <svg class="timer-icon icon-pause" viewBox="0 0 24 24" width="13" height="13" fill="currentColor" style="display: none;">
+            <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+          </svg>
+        </button>
+        <span id="timerDisplay" class="timer-display" title="Elapsed coding time">00:00:00</span>
+        <button id="timerResetBtn" class="timer-btn timer-reset-btn" type="button" title="Reset (↻)" aria-label="Reset stopwatch">
+          <svg class="timer-icon icon-reset" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+            <path d="M3 3v5h5"/>
+          </svg>
+        </button>
+      </div>
     </div>
     <div class="nav-right">
       <div class="language-select-wrapper">
@@ -88,7 +107,7 @@
             Submit
           </button>
           <button id="analyzeCodeBtn" class="btn btn-secondary" type="button">
-            Analyze Code
+            AI Analysis
           </button>
         </div>
       </div>
@@ -172,6 +191,126 @@
     </section>
   </main>
 
-  <script type="module" src="app.js"></script>
+  <!-- AI Code Analysis Modal Experience -->
+  <div id="aiModal" class="ai-modal-overlay" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="aiModalTitle">
+    <div class="ai-modal-card">
+      <div class="ai-modal-header">
+        <div class="ai-modal-title-row">
+          <span class="ai-badge">AI Assistant</span>
+          <h2 id="aiModalTitle" class="ai-modal-title">AI-Powered Code Analysis</h2>
+        </div>
+        <button id="aiModalCloseBtn" class="ai-close-btn" type="button" aria-label="Close" title="Back to CodeBench">&times;</button>
+      </div>
+
+      <!-- Step 1: Initial Screen - Introduction -->
+      <div id="aiStepIntro" class="ai-step">
+        <div class="ai-intro-body">
+          <div class="ai-intro-hero">
+            <h3 class="ai-step-heading">AI-Powered Code Analysis</h3>
+            <p class="ai-intro-text">
+              Analyze your current code for time &amp; space complexity, potential bugs, optimization opportunities, and clear explanations.
+            </p>
+          </div>
+
+          <div class="ai-features-grid">
+            <div class="ai-feature-card">
+              <span class="ai-feature-icon">⏱️</span>
+              <div class="ai-feature-info">
+                <strong>Complexity Analysis</strong>
+                <span>Big-O runtime &amp; auxiliary space evaluation.</span>
+              </div>
+            </div>
+            <div class="ai-feature-card">
+              <span class="ai-feature-icon">🐛</span>
+              <div class="ai-feature-info">
+                <strong>Bug &amp; Edge Cases</strong>
+                <span>Detect potential runtime pitfalls and edge cases.</span>
+              </div>
+            </div>
+            <div class="ai-feature-card">
+              <span class="ai-feature-icon">⚡</span>
+              <div class="ai-feature-info">
+                <strong>Optimization Opportunities</strong>
+                <span>Actionable suggestions to improve speed &amp; memory.</span>
+              </div>
+            </div>
+            <div class="ai-feature-card">
+              <span class="ai-feature-icon">💡</span>
+              <div class="ai-feature-info">
+                <strong>Explanations</strong>
+                <span>Clear line-by-line understanding of your solution.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ai-modal-actions">
+          <button id="aiIntroCloseBtn" class="btn btn-secondary" type="button">Back to CodeBench</button>
+          <button id="aiIntroGetStartedBtn" class="btn btn-primary" type="button">Get Started / Enter API Key &rarr;</button>
+        </div>
+      </div>
+
+      <!-- Step 2: API Key Entry Screen -->
+      <div id="aiStepKeyConfig" class="ai-step" style="display: none;">
+        <div class="ai-intro-hero">
+          <h3 class="ai-step-heading">Enter your API Key</h3>
+          <p class="ai-intro-text">
+            Enter your OpenRouter API key below to unlock instant AI analysis for your solutions.
+          </p>
+        </div>
+
+        <div class="ai-form-group">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <label for="aiApiKeyInput" class="ai-label">OpenRouter API Key</label>
+            <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer" class="ai-link-btn" style="font-size: 0.82rem;">Get API Key &nearr;</a>
+          </div>
+          <div class="ai-input-wrap">
+            <input id="aiApiKeyInput" type="password" class="ai-input" placeholder="Paste your OpenRouter API key (sk-or-...)" autocomplete="off" spellcheck="false" />
+            <button id="aiToggleKeyVisibilityBtn" class="ai-eye-btn" type="button" title="Toggle visibility">👁️</button>
+          </div>
+          <p class="ai-key-note">
+            🔒 Note: You provide your own OpenRouter API key. It is saved only in your browser's local storage and used directly to analyze your code. It is never stored on our servers.
+          </p>
+        </div>
+
+        <div id="aiKeyError" class="ai-error-banner" style="display: none;"></div>
+
+        <div class="ai-modal-actions">
+          <button id="aiKeyBackBtn" class="btn btn-secondary" type="button">&larr; Back</button>
+          <button id="aiKeyContinueBtn" class="btn btn-primary" type="button">Continue</button>
+        </div>
+      </div>
+
+      <!-- Step 3: AI Analysis Interface -->
+      <div id="aiStepResults" class="ai-step" style="display: none;">
+        <div class="ai-results-meta">
+          <div class="ai-meta-left">
+            <span id="aiTargetProblem" class="ai-target-info">Solution Analysis</span>
+          </div>
+          <div class="ai-key-actions">
+            <button id="aiChangeKeyBtn" class="ai-link-btn" type="button">Change API Key</button>
+            <span class="ai-sep">|</span>
+            <button id="aiRemoveKeyBtn" class="ai-link-btn ai-link-danger" type="button">Remove API Key</button>
+          </div>
+        </div>
+
+        <div id="aiLoading" class="ai-loading-box" style="display: none;">
+          <div class="ai-spinner"></div>
+          <span>Analyzing your code with AI...</span>
+        </div>
+
+        <div id="aiResultsError" class="ai-error-banner" style="display: none;"></div>
+
+        <div id="aiAnalysisOutput" class="ai-analysis-content"></div>
+
+        <div class="ai-modal-actions">
+          <button id="aiCloseResultsBtn" class="btn btn-secondary" type="button">Back to CodeBench</button>
+          <button id="aiReanalyzeBtn" class="btn btn-primary" type="button">&#8635; Analyze Current Code</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="app.js?v=4"></script>
 </body>
 </html>

@@ -3,7 +3,7 @@
 // Caches core static assets for offline capability without intercepting Judge0 API or problem assets
 // ===================================================================
 
-const CACHE_NAME = "codebench-cache-v2";
+const CACHE_NAME = "codebench-cache-v5";
 const STATIC_ASSETS = [
   "./",
   "./index.html",
@@ -34,7 +34,7 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
-// 3. Fetch Event: Cache-First for static UI assets only, Network for all others
+// 3. Fetch Event: Network-First for local files with Cache Fallback
 self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
 
@@ -53,8 +53,14 @@ self.addEventListener("fetch", (event) => {
   }
 
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      return cachedResponse || fetch(event.request);
-    })
+    fetch(event.request)
+      .then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200) {
+          const clone = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        }
+        return networkResponse;
+      })
+      .catch(() => caches.match(event.request))
   );
 });

@@ -1,11 +1,5 @@
 // ===================================================================
 // CodeBench - Frontend Application Logic (Vanilla JavaScript)
-// Demonstrates Core JavaScript & Browser Concepts:
-// - Promises, async/await, setTimeout
-// - Browser APIs: localStorage, Web Worker, Service Worker, Fetch API
-// - Object-Oriented Programming (Classes & Inheritance)
-// - Try / Catch Error Handling
-// - Direct Judge0 API Execution & Second Public REST API
 // ===================================================================
 // import { runWithWasm } from "./wasmRunner.js";
 // Base path helper: problem files load directly from problems/
@@ -38,6 +32,10 @@ let saveDebounceTimer = null; // Used for debouncing localStorage writes with se
 const problemSelect = document.getElementById("problemSelect");
 const languageSelect = document.getElementById("languageSelect");
 const resetCodeBtn = document.getElementById("resetCodeBtn");
+const timerControl = document.getElementById("timerControl");
+const timerToggleBtn = document.getElementById("timerToggleBtn");
+const timerDisplay = document.getElementById("timerDisplay");
+const timerResetBtn = document.getElementById("timerResetBtn");
 
 const problemTitle = document.getElementById("problemTitle");
 const problemDifficulty = document.getElementById("problemDifficulty");
@@ -52,6 +50,7 @@ const codeHighlight = document.getElementById("codeHighlight");
 const codeEditor = document.getElementById("codeEditor");
 const runBtn = document.getElementById("runBtn");
 const submitBtn = document.getElementById("submitBtn");
+const analyzeCodeBtn = document.getElementById("analyzeCodeBtn");
 
 const tabTestCasesBtn = document.getElementById("tabTestCasesBtn");
 const tabOutputBtn = document.getElementById("tabOutputBtn");
@@ -232,10 +231,12 @@ function initHighlightWorker() {
 }
 
 function escapeHtml(text) {
-  return text
+  return String(text || "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
 // Synchronous syntax highlighter fallback for file:// or when Web Worker is blocked
@@ -1249,6 +1250,366 @@ function displayResult(result) {
 }
 
 // ===================================================================
+// AI Analysis Module (Client-Side Modular Integration)
+// ===================================================================
+
+const AI_KEY_STORAGE = "codebench_ai_key";
+const AI_PROVIDER_STORAGE = "codebench_ai_provider";
+const AI_CONFIGURED_FLAG = "aiApiKeyConfigured";
+
+function generateMockAnalysis() {
+  const prob = problemTitle?.textContent || "Problem Solution";
+  const lang = LANGUAGE_CONFIG[currentLanguage]?.name || currentLanguage;
+  return `### 1. Time & Space Complexity
+- **Time Complexity:** O(N) — Linear scan over the primary collection.
+- **Space Complexity:** O(N) — Auxiliary memory for state storage and lookups.
+
+### 2. Correctness & Edge Cases
+- **Standard Cases:** The current solution handles standard scenarios for **${prob}**.
+- **Edge Cases to Watch:**
+  - Empty or single-element inputs.
+  - Large boundary input sizes and negative numbers.
+  - Duplicates in input arrays.
+
+### 3. Optimization Opportunities
+- Use hash maps for O(1) lookups instead of nested iterations.
+- Minimize redundant allocations inside loops.
+- Add early boundary guard checks.
+
+### 4. Code Explanation
+- The ${lang} implementation solves the problem by iterating elements and tracking required state to guarantee correct results.`;
+}
+
+async function callAiWithKey(apiKey, prompt) {
+  const cleanKey = (apiKey || "").trim().replace(/^["']|["']$/g, "");
+  if (!cleanKey) {
+    throw new Error("API key is missing or empty. Please enter your OpenRouter API key.");
+  }
+
+  // 1. Mock / Demo key support for instant testing
+  if (cleanKey.toLowerCase().startsWith("demo") || cleanKey.toLowerCase().startsWith("test")) {
+    return generateMockAnalysis();
+  }
+
+  // 2. OpenRouter API
+  const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${cleanKey}`,
+      "HTTP-Referer": window.location.origin || "http://localhost:8080",
+      "X-Title": "CodeBench"
+    },
+    body: JSON.stringify({
+      model: "deepseek/deepseek-chat",
+      models: [
+        "deepseek/deepseek-chat",
+        "meta-llama/llama-3.3-70b-instruct:free"
+      ],
+      messages: [
+        {
+          role: "system",
+          content: "You are an expert algorithmic technical reviewer. Provide a strictly concise, structured review with clear bullet points. Avoid conversational filler, introductory greetings, or boilerplate. Keep explanations compact and high-signal."
+        },
+        { role: "user", content: prompt }
+      ]
+    })
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error?.message || `OpenRouter request failed (${res.status})`);
+  }
+
+  const text = data.choices?.[0]?.message?.content;
+  if (!text) throw new Error("No response received from OpenRouter.");
+  return text;
+}
+
+function renderMarkdown(md) {
+  if (!md) return "";
+  let html = escapeHtml(md);
+
+  // Fenced code blocks
+  html = html.replace(/```([a-zA-Z0-9_-]*)\n([\s\S]*?)```/g, (match, lang, code) => {
+    return `<pre><code>${code.trim()}</code></pre>`;
+  });
+
+  // Inline code
+  html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
+
+  // Headings
+  html = html.replace(/^### (.*$)/gim, "<h4>$1</h4>");
+  html = html.replace(/^## (.*$)/gim, "<h3>$1</h3>");
+  html = html.replace(/^# (.*$)/gim, "<h3>$1</h3>");
+
+  // Bold & Italic
+  html = html.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+  html = html.replace(/\*([^*]+)\*/g, "<em>$1</em>");
+
+  // Bullet items
+  html = html.replace(/^\s*[-*]\s+(.*$)/gim, "<li>$1</li>");
+  html = html.replace(/(<li>[\s\S]*?<\/li>)/g, "<ul>$1</ul>");
+  html = html.replace(/<\/ul>\s*<ul>/g, "");
+
+  // Paragraphs
+  const paragraphs = html.split(/\n{2,}/);
+  return paragraphs
+    .map((p) => {
+      const trimmed = p.trim();
+      if (!trimmed) return "";
+      if (trimmed.startsWith("<h") || trimmed.startsWith("<pre") || trimmed.startsWith("<ul")) {
+        return trimmed;
+      }
+      return `<p>${trimmed.replace(/\n/g, "<br>")}</p>`;
+    })
+    .filter(Boolean)
+    .join("\n");
+}
+
+function setAiStep(stepName) {
+  const steps = {
+    intro: document.getElementById("aiStepIntro"),
+    keyConfig: document.getElementById("aiStepKeyConfig"),
+    results: document.getElementById("aiStepResults")
+  };
+  Object.keys(steps).forEach((k) => {
+    if (steps[k]) steps[k].style.display = k === stepName ? "flex" : "none";
+  });
+}
+
+let isAiAnalyzing = false;
+
+async function runAiAnalysis(options = {}) {
+  const fromInsideModal = options.fromInsideModal || false;
+  if (isAiAnalyzing) return;
+
+  const rawKey = localStorage.getItem(AI_KEY_STORAGE);
+  const cleanKey = (rawKey || "").trim().replace(/^["']|["']$/g, "");
+  const aiModal = document.getElementById("aiModal");
+  const aiTargetProblem = document.getElementById("aiTargetProblem");
+  const aiLoading = document.getElementById("aiLoading");
+  const aiResultsError = document.getElementById("aiResultsError");
+  const aiAnalysisOutput = document.getElementById("aiAnalysisOutput");
+  const aiReanalyzeBtn = document.getElementById("aiReanalyzeBtn");
+
+  if (!cleanKey) {
+    setAiStep("keyConfig");
+    if (aiModal) aiModal.style.display = "flex";
+    return;
+  }
+
+  isAiAnalyzing = true;
+  let originalBtnHtml = "";
+  if (analyzeCodeBtn) {
+    originalBtnHtml = analyzeCodeBtn.innerHTML;
+    analyzeCodeBtn.disabled = true;
+    analyzeCodeBtn.innerHTML = `<span class="ai-btn-spinner"></span> Analyzing...`;
+  }
+
+  if (fromInsideModal) {
+    if (aiLoading) aiLoading.style.display = "flex";
+    if (aiAnalysisOutput) aiAnalysisOutput.style.display = "none";
+    if (aiResultsError) aiResultsError.style.display = "none";
+    if (aiReanalyzeBtn) aiReanalyzeBtn.disabled = true;
+  }
+
+  if (aiTargetProblem) {
+    aiTargetProblem.textContent = `Analyzing: ${problemTitle?.textContent || "Current Solution"}`;
+  }
+
+  const code = codeEditor.value.trim();
+  const problem = problemTitle.textContent || "Coding Problem";
+  const desc = problemDescription.textContent || "";
+  const langName = LANGUAGE_CONFIG[currentLanguage]?.name || currentLanguage;
+
+  const prompt = `Analyze this ${langName} solution for the problem "${problem}".
+
+Problem Context:
+${desc.slice(0, 450)}
+
+Solution Code:
+\`\`\`${currentLanguage}
+${code}
+\`\`\`
+
+Provide a strictly concise, structured technical review formatted in markdown with bullet points:
+### ⏱️ Time & Space Complexity
+- **Time Complexity:** O(...) — (one-sentence rationale)
+- **Space Complexity:** O(...) — (one-sentence rationale)
+
+### ⚠️ Bugs & Edge Cases
+- (1-2 bullet points: potential edge cases like empty input, overflows, or state bugs; if none, state "Clean")
+
+### 💡 Key Optimization
+- (1-2 bullet points on the most impactful optimization or alternative approach)
+
+### 📝 Summary
+- (1-2 sentences summarizing the core idea)`;
+
+  try {
+    const resultText = await callAiWithKey(cleanKey, prompt);
+
+    if (aiAnalysisOutput) {
+      aiAnalysisOutput.innerHTML = renderMarkdown(resultText);
+      aiAnalysisOutput.style.display = "block";
+    }
+    if (aiResultsError) aiResultsError.style.display = "none";
+    if (aiLoading) aiLoading.style.display = "none";
+
+    // Display the box only when the answer is ready
+    setAiStep("results");
+    if (aiModal) aiModal.style.display = "flex";
+  } catch (err) {
+    if (aiResultsError) {
+      aiResultsError.textContent = `Analysis failed: ${err.message || "An unexpected error occurred."}`;
+      aiResultsError.style.display = "block";
+    }
+    if (aiAnalysisOutput) aiAnalysisOutput.style.display = "none";
+    if (aiLoading) aiLoading.style.display = "none";
+
+    if (err.message && (err.message.includes("Authentication") || err.message.includes("401") || err.message.includes("API key"))) {
+      setAiStep("keyConfig");
+    } else {
+      setAiStep("results");
+    }
+    if (aiModal) aiModal.style.display = "flex";
+  } finally {
+    isAiAnalyzing = false;
+    if (analyzeCodeBtn) {
+      analyzeCodeBtn.disabled = false;
+      analyzeCodeBtn.innerHTML = originalBtnHtml || "AI Analysis";
+    }
+    if (aiReanalyzeBtn) {
+      aiReanalyzeBtn.disabled = false;
+    }
+  }
+}
+
+function handleAiButtonClick() {
+  const rawKey = localStorage.getItem(AI_KEY_STORAGE);
+  const cleanKey = (rawKey || "").trim().replace(/^["']|["']$/g, "");
+
+  if (!cleanKey) {
+    // If no key configured yet, show intro modal
+    setAiStep("intro");
+    const aiModal = document.getElementById("aiModal");
+    if (aiModal) aiModal.style.display = "flex";
+  } else {
+    // Key configured: run non-blockingly in background, user can keep typing!
+    runAiAnalysis({ fromInsideModal: false });
+  }
+}
+
+function closeAiModal() {
+  const aiModal = document.getElementById("aiModal");
+  if (aiModal) aiModal.style.display = "none";
+}
+
+function initAiAnalysis() {
+  const aiModal = document.getElementById("aiModal");
+  const aiModalCloseBtn = document.getElementById("aiModalCloseBtn");
+  const aiIntroCloseBtn = document.getElementById("aiIntroCloseBtn");
+  const aiIntroGetStartedBtn = document.getElementById("aiIntroGetStartedBtn");
+  const aiApiKeyInput = document.getElementById("aiApiKeyInput");
+  const aiToggleKeyVisibilityBtn = document.getElementById("aiToggleKeyVisibilityBtn");
+  const aiKeyError = document.getElementById("aiKeyError");
+  const aiKeyBackBtn = document.getElementById("aiKeyBackBtn");
+  const aiKeyContinueBtn = document.getElementById("aiKeyContinueBtn");
+  const aiChangeKeyBtn = document.getElementById("aiChangeKeyBtn");
+  const aiRemoveKeyBtn = document.getElementById("aiRemoveKeyBtn");
+  const aiReanalyzeBtn = document.getElementById("aiReanalyzeBtn");
+  const aiCloseResultsBtn = document.getElementById("aiCloseResultsBtn");
+
+  if (analyzeCodeBtn) {
+    analyzeCodeBtn.addEventListener("click", handleAiButtonClick);
+  }
+
+  if (aiModalCloseBtn) aiModalCloseBtn.addEventListener("click", closeAiModal);
+  if (aiIntroCloseBtn) aiIntroCloseBtn.addEventListener("click", closeAiModal);
+  if (aiCloseResultsBtn) aiCloseResultsBtn.addEventListener("click", closeAiModal);
+
+  if (aiModal) {
+    aiModal.addEventListener("click", (e) => {
+      if (e.target === aiModal) closeAiModal();
+    });
+  }
+
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && aiModal && aiModal.style.display === "flex") {
+      closeAiModal();
+    }
+  });
+
+  if (aiIntroGetStartedBtn) {
+    aiIntroGetStartedBtn.addEventListener("click", () => {
+      if (aiApiKeyInput) aiApiKeyInput.value = (localStorage.getItem(AI_KEY_STORAGE) || "").trim();
+      if (aiKeyError) aiKeyError.style.display = "none";
+      setAiStep("keyConfig");
+      if (aiApiKeyInput) aiApiKeyInput.focus();
+    });
+  }
+
+  if (aiKeyBackBtn) {
+    aiKeyBackBtn.addEventListener("click", () => {
+      setAiStep("intro");
+    });
+  }
+
+  if (aiToggleKeyVisibilityBtn && aiApiKeyInput) {
+    aiToggleKeyVisibilityBtn.addEventListener("click", () => {
+      aiApiKeyInput.type = aiApiKeyInput.type === "password" ? "text" : "password";
+    });
+  }
+
+  if (aiKeyContinueBtn) {
+    aiKeyContinueBtn.addEventListener("click", () => {
+      const raw = aiApiKeyInput ? aiApiKeyInput.value : "";
+      const key = (raw || "").trim().replace(/^["']|["']$/g, "");
+      if (!key) {
+        if (aiKeyError) {
+          aiKeyError.textContent = "Please enter your OpenRouter API key to continue.";
+          aiKeyError.style.display = "block";
+        }
+        return;
+      }
+
+      localStorage.setItem(AI_KEY_STORAGE, key);
+      localStorage.setItem(AI_CONFIGURED_FLAG, "true");
+
+      closeAiModal();
+      runAiAnalysis({ fromInsideModal: false });
+    });
+  }
+
+  if (aiChangeKeyBtn) {
+    aiChangeKeyBtn.addEventListener("click", () => {
+      if (aiApiKeyInput) aiApiKeyInput.value = (localStorage.getItem(AI_KEY_STORAGE) || "").trim();
+      if (aiKeyError) aiKeyError.style.display = "none";
+      setAiStep("keyConfig");
+      if (aiApiKeyInput) aiApiKeyInput.focus();
+    });
+  }
+
+  if (aiRemoveKeyBtn) {
+    aiRemoveKeyBtn.addEventListener("click", () => {
+      if (confirm("Are you sure you want to remove your stored API key?")) {
+        localStorage.removeItem(AI_KEY_STORAGE);
+        localStorage.removeItem(AI_CONFIGURED_FLAG);
+        if (aiApiKeyInput) aiApiKeyInput.value = "";
+        setAiStep("intro");
+      }
+    });
+  }
+
+  if (aiReanalyzeBtn) {
+    aiReanalyzeBtn.addEventListener("click", () => {
+      runAiAnalysis({ fromInsideModal: true });
+    });
+  }
+}
+
+// ===================================================================
 // Application Startup
 // ===================================================================
 
@@ -1304,6 +1665,158 @@ function init() {
 
   // 6. Fetch inspiration quote from Second Public REST API
   fetchInspirationQuote();
+
+  // 7. Initialize AI Analysis integration
+  initAiAnalysis();
+
+  // 8. Initialize LeetCode-style stopwatch timer
+  initStopwatch();
+}
+
+// ===================================================================
+// LeetCode-style Timer / Stopwatch (Independent, Timestamp-based)
+// ===================================================================
+
+const MAX_STOPWATCH_MS = 100 * 3600 * 1000; // 100 hours (wraps back to 00:00:00 after 99:59:59)
+
+let timerStartTime = null;
+let timerAccumulatedMs = 0;
+let timerIntervalId = null;
+let isTimerRunning = false;
+
+function formatStopwatchTime(totalMs) {
+  const safeMs = Math.max(0, Math.floor(totalMs)) % MAX_STOPWATCH_MS;
+  const totalSeconds = Math.floor(safeMs / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  const pad = (num) => String(num).padStart(2, "0");
+  return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+}
+
+function getElapsedStopwatchMs() {
+  if (!isTimerRunning || timerStartTime === null) {
+    return timerAccumulatedMs % MAX_STOPWATCH_MS;
+  }
+  const currentElapsed = timerAccumulatedMs + (Date.now() - timerStartTime);
+  return currentElapsed % MAX_STOPWATCH_MS;
+}
+
+function updateTimerDisplay() {
+  if (!timerDisplay) return;
+  const elapsed = getElapsedStopwatchMs();
+  timerDisplay.textContent = formatStopwatchTime(elapsed);
+}
+
+function startTimer() {
+  if (isTimerRunning) return;
+  isTimerRunning = true;
+  timerStartTime = Date.now();
+
+  const iconPlay = timerToggleBtn ? timerToggleBtn.querySelector(".icon-play") : null;
+  const iconPause = timerToggleBtn ? timerToggleBtn.querySelector(".icon-pause") : null;
+
+  if (iconPlay) iconPlay.style.display = "none";
+  if (iconPause) iconPause.style.display = "block";
+  if (timerToggleBtn) {
+    timerToggleBtn.title = "Pause (⏸)";
+    timerToggleBtn.setAttribute("aria-label", "Pause stopwatch");
+  }
+  if (timerControl) {
+    timerControl.classList.add("is-running");
+  }
+
+  updateTimerDisplay();
+
+  // Calculate elapsed time using timestamps (Date.now()) on each tick to eliminate drift
+  clearInterval(timerIntervalId);
+  timerIntervalId = setInterval(() => {
+    // If accumulated + elapsed reached 100 hours, normalize timestamps safely
+    if (timerStartTime !== null && (timerAccumulatedMs + (Date.now() - timerStartTime)) >= MAX_STOPWATCH_MS) {
+      const wrapped = (timerAccumulatedMs + (Date.now() - timerStartTime)) % MAX_STOPWATCH_MS;
+      timerAccumulatedMs = wrapped;
+      timerStartTime = Date.now();
+    }
+    updateTimerDisplay();
+  }, 250);
+}
+
+function pauseTimer() {
+  if (!isTimerRunning) return;
+  isTimerRunning = false;
+  clearInterval(timerIntervalId);
+  timerIntervalId = null;
+
+  if (timerStartTime !== null) {
+    timerAccumulatedMs = (timerAccumulatedMs + (Date.now() - timerStartTime)) % MAX_STOPWATCH_MS;
+    timerStartTime = null;
+  }
+
+  const iconPlay = timerToggleBtn ? timerToggleBtn.querySelector(".icon-play") : null;
+  const iconPause = timerToggleBtn ? timerToggleBtn.querySelector(".icon-pause") : null;
+
+  if (iconPlay) iconPlay.style.display = "block";
+  if (iconPause) iconPause.style.display = "none";
+  if (timerToggleBtn) {
+    timerToggleBtn.title = "Resume (▶)";
+    timerToggleBtn.setAttribute("aria-label", "Resume stopwatch");
+  }
+  if (timerControl) {
+    timerControl.classList.remove("is-running");
+  }
+
+  updateTimerDisplay();
+}
+
+function resetTimer() {
+  isTimerRunning = false;
+  clearInterval(timerIntervalId);
+  timerIntervalId = null;
+  timerStartTime = null;
+  timerAccumulatedMs = 0;
+
+  const iconPlay = timerToggleBtn ? timerToggleBtn.querySelector(".icon-play") : null;
+  const iconPause = timerToggleBtn ? timerToggleBtn.querySelector(".icon-pause") : null;
+
+  if (iconPlay) iconPlay.style.display = "block";
+  if (iconPause) iconPause.style.display = "none";
+  if (timerToggleBtn) {
+    timerToggleBtn.title = "Start (▶)";
+    timerToggleBtn.setAttribute("aria-label", "Start stopwatch");
+  }
+  if (timerControl) {
+    timerControl.classList.remove("is-running");
+  }
+
+  if (timerDisplay) {
+    timerDisplay.textContent = "00:00:00";
+  }
+}
+
+function toggleTimer() {
+  if (isTimerRunning) {
+    pauseTimer();
+  } else {
+    startTimer();
+  }
+}
+
+function initStopwatch() {
+  if (!timerToggleBtn || !timerResetBtn || !timerDisplay) return;
+
+  timerToggleBtn.addEventListener("click", toggleTimer);
+  timerResetBtn.addEventListener("click", resetTimer);
+  timerDisplay.addEventListener("click", toggleTimer);
+
+  // Eliminate any visual throttling when switching browser tabs
+  document.addEventListener("visibilitychange", () => {
+    if (isTimerRunning) {
+      updateTimerDisplay();
+    }
+  });
+
+  resetTimer();
 }
 
 document.addEventListener("DOMContentLoaded", init);
