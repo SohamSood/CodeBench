@@ -599,20 +599,6 @@ select:hover, select:focus {
   color: var(--text-secondary);
 }
 
-.delete-testcase-btn {
-  background: transparent;
-  border: none;
-  color: var(--accent-red);
-  cursor: pointer;
-  font-size: 0.8rem;
-  padding: 2px 6px;
-  border-radius: 4px;
-}
-
-.delete-testcase-btn:hover {
-  background-color: var(--accent-red-bg);
-}
-
 .testcase-fields {
   display: grid;
   grid-template-columns: 1fr 1fr;

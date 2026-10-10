@@ -1,7 +1,7 @@
 // ===================================================================
 // CodeBench - Frontend Application Logic (Vanilla JavaScript)
 // ===================================================================
-// import { runWithWasm } from "./wasmRunner.js";
+import { runWithWasm } from "./wasmRunner.js";
 // Base path helper: problem files load directly from problems/
 const BASE_PATH = "";
 
@@ -19,6 +19,10 @@ const LANGUAGE_CONFIG = {
   cpp: { name: "C++", ext: "cpp", id: 54 },
   java: { name: "Java", ext: "java", id: 62 }
 };
+
+// C++ execution: "judge0", "wasm", or "judge0-fallback-wasm".
+// The fallback mode uses WASM only when the Judge0 request itself fails.
+const CPP_EXECUTION_MODE = "judge0-fallback-wasm";
 
 // Application State
 let currentProblemId = "two-sum";
@@ -59,7 +63,6 @@ const outputView = document.getElementById("outputView");
 
 const testCaseCount = document.getElementById("testCaseCount");
 const testCasesContainer = document.getElementById("testCasesContainer");
-const addTestCaseBtn = document.getElementById("addTestCaseBtn");
 
 const outputPlaceholder = document.getElementById("outputPlaceholder");
 const outputDetails = document.getElementById("outputDetails");
@@ -662,15 +665,6 @@ function renderTestCases() {
     header.className = "testcase-header-row";
     header.innerHTML = `<span>Case ${index + 1}</span>`;
 
-    if (testCases.length > 1) {
-      const delBtn = document.createElement("button");
-      delBtn.className = "delete-testcase-btn";
-      delBtn.textContent = "Remove";
-      delBtn.title = "Delete this test case";
-      delBtn.addEventListener("click", () => removeTestCase(index));
-      header.appendChild(delBtn);
-    }
-
     const fields = document.createElement("div");
     fields.className = "testcase-fields";
 
@@ -715,11 +709,6 @@ function addTestCase() {
     return;
   }
   testCases.push({ input: "", expected: "" });
-  renderTestCases();
-}
-
-function removeTestCase(index) {
-  testCases.splice(index, 1);
   renderTestCases();
 }
 
@@ -995,8 +984,8 @@ public class Main {
 }
 
 // ===================================================================
-// Code Execution via Judge0 API (Run & Submit)
-// Demonstrates: async/await, try/catch, JudgeRunner class, and Judge0 fetch
+// Code Execution via WebAssembly or Judge0 (Run & Submit)
+// Demonstrates: async/await, try/catch, and language-specific runners
 // ===================================================================
 
 async function runCode() {
@@ -1016,7 +1005,17 @@ async function executeWithJudge(mode) {
   }
 
   switchTab("output");
-  setLoadingState(true, mode === "run" ? "Running visible test cases via Judge0..." : "Evaluating submission on Judge0...");
+  const executionService = currentLanguage !== "cpp" || CPP_EXECUTION_MODE === "judge0"
+    ? "Judge0"
+    : CPP_EXECUTION_MODE === "wasm"
+      ? "local WebAssembly"
+      : "Judge0 with local WebAssembly fallback";
+  setLoadingState(
+    true,
+    mode === "run"
+      ? `Running visible test cases via ${executionService}...`
+      : `Evaluating submission via ${executionService}...`
+  );
 
   // Concept: small status transition using setTimeout / Promise delay
   await delay(50);
@@ -1041,9 +1040,8 @@ async function executeWithJudge(mode) {
       return;
     }
 
-    // 2. Instantiate JudgeRunner (demonstrating OOP Inheritance)
+    // 2. Prepare runner metadata
     const langInfo = LANGUAGE_CONFIG[currentLanguage] || LANGUAGE_CONFIG.js;
-    const runner = new JudgeRunner(currentLanguage, langInfo.id);
 
     // 3. Prepare source code with test harness for active language
     let codeToSend = code;
@@ -1057,22 +1055,42 @@ async function executeWithJudge(mode) {
       codeToSend = buildJavaTestHarness(code, casesToRun, currentProblemId);
     }
 
-    // 4. Execute via Judge0 API
-    const result = await runner.execute(codeToSend, "");
-    console.log("Judge0 Response:", result);
+    // 4. Use the configured C++ runner; other languages always use Judge0.
+    let result;
+    let executionPlatform = "Judge0";
+    if (currentLanguage === "cpp" && CPP_EXECUTION_MODE === "wasm") {
+      result = await runWithWasm(codeToSend, "");
+      executionPlatform = "WebAssembly";
+    } else {
+      try {
+        result = await new JudgeRunner(currentLanguage, langInfo.id).execute(codeToSend, "");
+      } catch (error) {
+        if (currentLanguage !== "cpp" || CPP_EXECUTION_MODE !== "judge0-fallback-wasm") {
+          throw error;
+        }
+
+        console.warn("Judge0 request failed; retrying C++ execution locally with WebAssembly.", error);
+        result = await runWithWasm(codeToSend, "");
+        executionPlatform = "WebAssembly";
+      }
+    }
+    console.log(`${executionPlatform} Response:`, result);
 
     // 5. Handle and display output
-    handleJudgeResponse(result, casesToRun);
+    handleJudgeResponse(result, casesToRun, executionPlatform);
   } catch (error) {
     console.error("Execution error:", error);
-    showErrorMessage(`Judge0 Error: ${error.message}\n\nPlease check your internet connection.`);
+    const service = currentLanguage === "cpp" && CPP_EXECUTION_MODE === "wasm"
+      ? "WebAssembly runner"
+      : "Judge0 or its configured WebAssembly fallback";
+    showErrorMessage(`${service} Error: ${error.message}\n\nPlease check your internet connection.`);
   } finally {
     setLoadingState(false);
   }
 }
 
 // Parses and maps Judge0 response into the UI
-function handleJudgeResponse(result, casesToRun) {
+function handleJudgeResponse(result, casesToRun, executionPlatform = "Judge0") {
   if (!result) {
     showErrorMessage("No response received from Judge0.");
     return;
@@ -1092,7 +1110,6 @@ function handleJudgeResponse(result, casesToRun) {
   const stdout = result.stdout || "";
   const executionTime = result.time ? Math.round(parseFloat(result.time) * 1000) : 0;
   const memoryMB = result.memory ? (parseInt(result.memory, 10) / 1024).toFixed(1) : "-";
-
   // Check if structured test breakdown was returned
   if (stdout.includes("---TEST_BREAKDOWN_START---") && stdout.includes("---TEST_BREAKDOWN_END---")) {
     const rawJson = stdout.split("---TEST_BREAKDOWN_START---")[1].split("---TEST_BREAKDOWN_END---")[0].trim();
@@ -1103,7 +1120,9 @@ function handleJudgeResponse(result, casesToRun) {
 
       displayResult({
         status: isAccepted ? "Accepted" : "Wrong Answer",
-        message: isAccepted ? "All test cases passed on Judge0!" : `${breakdown.length - passedCount} test case(s) failed.`,
+        message: isAccepted
+          ? `All test cases passed on ${executionPlatform}!`
+          : `${breakdown.length - passedCount} test case(s) failed.`,
         passed: passedCount,
         total: breakdown.length,
         executionTime: executionTime,
@@ -1641,7 +1660,6 @@ function init() {
 
   tabTestCasesBtn.addEventListener("click", () => switchTab("testcases"));
   tabOutputBtn.addEventListener("click", () => switchTab("output"));
-  addTestCaseBtn.addEventListener("click", addTestCase);
 
   codeEditor.addEventListener("input", onCodeInput);
   codeEditor.addEventListener("keydown", handleEditorKeydown);
