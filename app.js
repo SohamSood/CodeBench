@@ -869,9 +869,9 @@ function buildCppTestHarness(userCode, testCasesList, problemId) {
         std::string actStr = "[";
         for (size_t k = 0; k < actual.size(); ++k) actStr += (k > 0 ? "," : "") + std::to_string(actual[k]);
         actStr += "]";
-        if (${i} > 0) std::cout << ",";
-        std::cout << "{\\"testCase\\": ${caseNum}, \\"status\\": \\"" << (passed ? "Passed" : "Wrong Answer") 
-                  << "\\", \\"expected\\": [${tc.expected.join(",")}], \\"actual\\": " << actStr << "}";
+        if (${i} > 0) jsonOut << ",";
+        jsonOut << "{\\"testCase\\": ${caseNum}, \\"status\\": \\"" << (passed ? "Passed" : "Wrong Answer") 
+                << "\\", \\"expected\\": [${tc.expected.join(",")}], \\"actual\\": " << actStr << "}";
       }
       `;
     } else if (problemId === "binary-search") {
@@ -882,9 +882,9 @@ function buildCppTestHarness(userCode, testCasesList, problemId) {
         std::vector<int> nums = {${numsStr}};
         int actual = sol.search(nums, ${target});
         bool passed = (actual == ${tc.expected});
-        if (${i} > 0) std::cout << ",";
-        std::cout << "{\\"testCase\\": ${caseNum}, \\"status\\": \\"" << (passed ? "Passed" : "Wrong Answer") 
-                  << "\\", \\"expected\\": ${tc.expected}, \\"actual\\": " << actual << "}";
+        if (${i} > 0) jsonOut << ",";
+        jsonOut << "{\\"testCase\\": ${caseNum}, \\"status\\": \\"" << (passed ? "Passed" : "Wrong Answer") 
+                << "\\", \\"expected\\": ${tc.expected}, \\"actual\\": " << actual << "}";
       }
       `;
     } else if (problemId === "maximum-element") {
@@ -895,9 +895,9 @@ function buildCppTestHarness(userCode, testCasesList, problemId) {
         std::vector<int> nums = {${numsStr}};
         int actual = sol.findMax(nums);
         bool passed = (actual == ${tc.expected});
-        if (${i} > 0) std::cout << ",";
-        std::cout << "{\\"testCase\\": ${caseNum}, \\"status\\": \\"" << (passed ? "Passed" : "Wrong Answer") 
-                  << "\\", \\"expected\\": ${tc.expected}, \\"actual\\": " << actual << "}";
+        if (${i} > 0) jsonOut << ",";
+        jsonOut << "{\\"testCase\\": ${caseNum}, \\"status\\": \\"" << (passed ? "Passed" : "Wrong Answer") 
+                << "\\", \\"expected\\": ${tc.expected}, \\"actual\\": " << actual << "}";
       }
       `;
     }
@@ -909,12 +909,15 @@ ${userCode}
 #include <iostream>
 #include <vector>
 #include <string>
+#include <sstream>
 
 int main() {
     Solution sol;
-    std::cout << "---TEST_BREAKDOWN_START---\\n[";
+    std::stringstream jsonOut;
+    jsonOut << "[";
     ${testsLogic}
-    std::cout << "]\\n---TEST_BREAKDOWN_END---\\n";
+    jsonOut << "]";
+    std::cout << "\\n---TEST_BREAKDOWN_START---\\n" << jsonOut.str() << "\\n---TEST_BREAKDOWN_END---\\n";
     return 0;
 }
 `;
@@ -929,15 +932,25 @@ function buildJavaTestHarness(userCode, testCasesList, problemId) {
       const target = tc.input.target;
       testsLogic += `
       {
-        int[] actual = sol.twoSum(new int[]{${numsStr}}, ${target});
-        boolean passed = false;
-        if (actual != null && actual.length == 2) {
-          int e0 = ${tc.expected[0]}, e1 = ${tc.expected[1]};
-          passed = (actual[0] == e0 && actual[1] == e1) || (actual[0] == e1 && actual[1] == e0);
+        try {
+          int[] actual = sol.twoSum(new int[]{${numsStr}}, ${target});
+          boolean passed = false;
+          if (actual != null && actual.length == 2) {
+            int e0 = ${tc.expected[0]}, e1 = ${tc.expected[1]};
+            passed = (actual[0] == e0 && actual[1] == e1) || (actual[0] == e1 && actual[1] == e0);
+          }
+          if (${i} > 0) jsonBuilder.append(",");
+          String actStr = (actual == null) ? "null" : java.util.Arrays.toString(actual);
+          jsonBuilder.append("{\\"testCase\\": ${caseNum}, \\"status\\": \\"" + (passed ? "Passed" : "Wrong Answer") + 
+                             "\\", \\"expected\\": [${tc.expected.join(",")}], \\"actual\\": " + actStr + "}");
+        } catch (Throwable t) {
+          if (${i} > 0) jsonBuilder.append(",");
+          String err = t.getClass().getSimpleName();
+          if (t.getMessage() != null && !t.getMessage().isEmpty()) {
+            err += ": " + t.getMessage().replace('"', (char)39).replace('\\n', ' ');
+          }
+          jsonBuilder.append("{\\"testCase\\": ${caseNum}, \\"status\\": \\"Runtime Error\\", \\"expected\\": [${tc.expected.join(",")}], \\"actual\\": \\"" + err + "\\"}");
         }
-        if (${i} > 0) System.out.print(",");
-        System.out.print("{\\"testCase\\": ${caseNum}, \\"status\\": \\"" + (passed ? "Passed" : "Wrong Answer") + 
-                         "\\", \\"expected\\": [${tc.expected.join(",")}], \\"actual\\": " + java.util.Arrays.toString(actual) + "}");
       }
       `;
     } else if (problemId === "binary-search") {
@@ -945,11 +958,20 @@ function buildJavaTestHarness(userCode, testCasesList, problemId) {
       const target = tc.input.target;
       testsLogic += `
       {
-        int actual = sol.search(new int[]{${numsStr}}, ${target});
-        boolean passed = (actual == ${tc.expected});
-        if (${i} > 0) System.out.print(",");
-        System.out.print("{\\"testCase\\": ${caseNum}, \\"status\\": \\"" + (passed ? "Passed" : "Wrong Answer") + 
-                         "\\", \\"expected\\": ${tc.expected}, \\"actual\\": " + actual + "}");
+        try {
+          int actual = sol.search(new int[]{${numsStr}}, ${target});
+          boolean passed = (actual == ${tc.expected});
+          if (${i} > 0) jsonBuilder.append(",");
+          jsonBuilder.append("{\\"testCase\\": ${caseNum}, \\"status\\": \\"" + (passed ? "Passed" : "Wrong Answer") + 
+                             "\\", \\"expected\\": ${tc.expected}, \\"actual\\": " + actual + "}");
+        } catch (Throwable t) {
+          if (${i} > 0) jsonBuilder.append(",");
+          String err = t.getClass().getSimpleName();
+          if (t.getMessage() != null && !t.getMessage().isEmpty()) {
+            err += ": " + t.getMessage().replace('"', (char)39).replace('\\n', ' ');
+          }
+          jsonBuilder.append("{\\"testCase\\": ${caseNum}, \\"status\\": \\"Runtime Error\\", \\"expected\\": ${tc.expected}, \\"actual\\": \\"" + err + "\\"}");
+        }
       }
       `;
     } else if (problemId === "maximum-element") {
@@ -957,11 +979,20 @@ function buildJavaTestHarness(userCode, testCasesList, problemId) {
       const numsStr = rawNums.join(",");
       testsLogic += `
       {
-        int actual = sol.findMax(new int[]{${numsStr}});
-        boolean passed = (actual == ${tc.expected});
-        if (${i} > 0) System.out.print(",");
-        System.out.print("{\\"testCase\\": ${caseNum}, \\"status\\": \\"" + (passed ? "Passed" : "Wrong Answer") + 
-                         "\\", \\"expected\\": ${tc.expected}, \\"actual\\": " + actual + "}");
+        try {
+          int actual = sol.findMax(new int[]{${numsStr}});
+          boolean passed = (actual == ${tc.expected});
+          if (${i} > 0) jsonBuilder.append(",");
+          jsonBuilder.append("{\\"testCase\\": ${caseNum}, \\"status\\": \\"" + (passed ? "Passed" : "Wrong Answer") + 
+                             "\\", \\"expected\\": ${tc.expected}, \\"actual\\": " + actual + "}");
+        } catch (Throwable t) {
+          if (${i} > 0) jsonBuilder.append(",");
+          String err = t.getClass().getSimpleName();
+          if (t.getMessage() != null && !t.getMessage().isEmpty()) {
+            err += ": " + t.getMessage().replace('"', (char)39).replace('\\n', ' ');
+          }
+          jsonBuilder.append("{\\"testCase\\": ${caseNum}, \\"status\\": \\"Runtime Error\\", \\"expected\\": ${tc.expected}, \\"actual\\": \\"" + err + "\\"}");
+        }
       }
       `;
     }
@@ -972,12 +1003,32 @@ ${userCode}
 
 public class Main {
     public static void main(String[] args) {
-        Solution sol = new Solution();
-        System.out.println("---TEST_BREAKDOWN_START---");
-        System.out.print("[");
-        ${testsLogic}
-        System.out.println("]");
-        System.out.println("---TEST_BREAKDOWN_END---");
+        java.io.PrintStream originalOut = System.out;
+        java.io.ByteArrayOutputStream userOut = new java.io.ByteArrayOutputStream();
+        System.setOut(new java.io.PrintStream(userOut));
+
+        StringBuilder jsonBuilder = new StringBuilder();
+        jsonBuilder.append("[");
+        try {
+            Solution sol = new Solution();
+            ${testsLogic}
+        } catch (Throwable t) {
+            jsonBuilder.setLength(0);
+            jsonBuilder.append("[");
+            String err = t.getClass().getSimpleName() + (t.getMessage() != null ? (": " + t.getMessage().replace('"', (char)39).replace('\\n', ' ')) : "");
+            jsonBuilder.append("{\\"testCase\\": 1, \\"status\\": \\"Runtime Error\\", \\"expected\\": \\"-\\", \\"actual\\": \\"" + err + "\\"}");
+        }
+        jsonBuilder.append("]");
+
+        System.setOut(originalOut);
+        originalOut.println("\\n---TEST_BREAKDOWN_START---");
+        originalOut.println(jsonBuilder.toString());
+        originalOut.println("---TEST_BREAKDOWN_END---");
+        if (userOut.size() > 0) {
+            originalOut.println("---USER_OUTPUT_START---");
+            originalOut.write(userOut.toByteArray(), 0, userOut.size());
+            originalOut.println("\\n---USER_OUTPUT_END---");
+        }
     }
 }
 `;
@@ -1096,61 +1147,83 @@ function handleJudgeResponse(result, casesToRun, executionPlatform = "Judge0") {
     return;
   }
 
-  // Check for Compilation or Runtime Errors
-  if (result.compile_output) {
-    showErrorMessage(`Compilation Error:\n\n${result.compile_output}`);
+  // 1. Compilation Error (Judge0 id 6 or compile_output)
+  if (result.compile_output || result.status?.id === 6) {
+    showErrorMessage(`Compilation Error:\n\n${result.compile_output || result.stderr || result.message || "Compilation failed. Please check syntax."}`);
     return;
   }
 
-  if (result.stderr && !result.stdout) {
-    showErrorMessage(`Runtime Error:\n\n${result.stderr}`);
+  // 2. Time Limit Exceeded (Judge0 id 5)
+  if (result.status?.id === 5) {
+    showErrorMessage("Time Limit Exceeded:\n\nYour solution took too long to run. Please check for infinite loops or higher complexity.");
     return;
   }
 
   const stdout = result.stdout || "";
   const executionTime = result.time ? Math.round(parseFloat(result.time) * 1000) : 0;
   const memoryMB = result.memory ? (parseInt(result.memory, 10) / 1024).toFixed(1) : "-";
-  // Check if structured test breakdown was returned
+
+  // 3. Runtime Errors (id 7 to 12) without valid test breakdown
+  if (result.status && result.status.id > 6 && result.status.id <= 12) {
+    if (!stdout.includes("---TEST_BREAKDOWN_START---") || !stdout.includes("---TEST_BREAKDOWN_END---")) {
+      showErrorMessage(`Runtime Error (${result.status.description || "Execution Error"}):\n\n${result.stderr || result.message || stdout || "An error occurred during execution."}`);
+      return;
+    }
+  }
+
+  // 4. Stderr present with no breakdown markers
+  if (result.stderr && !stdout.includes("---TEST_BREAKDOWN_START---")) {
+    showErrorMessage(`Runtime Error:\n\n${result.stderr}`);
+    return;
+  }
+
+  // 5. Check if structured test breakdown was returned
   if (stdout.includes("---TEST_BREAKDOWN_START---") && stdout.includes("---TEST_BREAKDOWN_END---")) {
     const rawJson = stdout.split("---TEST_BREAKDOWN_START---")[1].split("---TEST_BREAKDOWN_END---")[0].trim();
     try {
       const breakdown = JSON.parse(rawJson);
-      const passedCount = breakdown.filter((b) => b.status === "Passed").length;
-      const isAccepted = passedCount === breakdown.length;
+      if (Array.isArray(breakdown) && breakdown.length > 0) {
+        const passedCount = breakdown.filter((b) => b.status === "Passed").length;
+        const isAccepted = passedCount === breakdown.length;
 
-      displayResult({
-        status: isAccepted ? "Accepted" : "Wrong Answer",
-        message: isAccepted
-          ? `All test cases passed on ${executionPlatform}!`
-          : `${breakdown.length - passedCount} test case(s) failed.`,
-        passed: passedCount,
-        total: breakdown.length,
-        executionTime: executionTime,
-        memory: memoryMB,
-        error: result.stderr || "",
-        results: breakdown
-      });
-      return;
+        let userLogs = "";
+        if (stdout.includes("---USER_OUTPUT_START---") && stdout.includes("---USER_OUTPUT_END---")) {
+          userLogs = stdout.split("---USER_OUTPUT_START---")[1].split("---USER_OUTPUT_END---")[0].trim();
+        }
+
+        displayResult({
+          status: isAccepted ? "Accepted" : "Wrong Answer",
+          message: isAccepted
+            ? `All test cases passed on ${executionPlatform}!`
+            : `${breakdown.length - passedCount} test case(s) failed.`,
+          passed: passedCount,
+          total: breakdown.length,
+          executionTime: executionTime,
+          memory: memoryMB,
+          error: result.stderr || (userLogs ? `Program Output:\n${userLogs}` : ""),
+          results: breakdown
+        });
+        return;
+      }
     } catch (e) {
       console.warn("Could not parse test breakdown JSON:", e);
     }
   }
 
-  // Fallback for general script execution or non-JS languages
-  const isAccepted = result.status?.id === 3; // 3 = Accepted
+  // 6. Safe fallback: NEVER mark unvalidated runs as "Accepted"!
   displayResult({
-    status: result.status?.description || (isAccepted ? "Accepted" : "Finished"),
-    message: result.message || "Executed on Judge0",
-    passed: isAccepted ? casesToRun.length : 0,
+    status: "Wrong Answer",
+    message: "Execution finished, but test cases could not be validated. Ensure your solution implements the required method and returns the expected result.",
+    passed: 0,
     total: casesToRun.length,
     executionTime: executionTime,
     memory: memoryMB,
-    error: result.stderr || "",
+    error: result.stderr || (stdout ? `Output:\n${stdout.slice(0, 500)}` : ""),
     results: casesToRun.map((tc, idx) => ({
       testCase: idx + 1,
-      status: isAccepted ? "Passed" : "Checked",
+      status: "Wrong Answer",
       expected: formatValue(tc.expected),
-      actual: stdout.trim() || "(No stdout)"
+      actual: stdout.trim() || "(No output)"
     }))
   });
 }
@@ -1279,24 +1352,24 @@ const AI_CONFIGURED_FLAG = "aiApiKeyConfigured";
 function generateMockAnalysis() {
   const prob = problemTitle?.textContent || "Problem Solution";
   const lang = LANGUAGE_CONFIG[currentLanguage]?.name || currentLanguage;
-  return `### 1. Time & Space Complexity
-- **Time Complexity:** O(N) — Linear scan over the primary collection.
-- **Space Complexity:** O(N) — Auxiliary memory for state storage and lookups.
+  return `### ⏱️ Time & Space Complexity
+- **Time Complexity:** O(N) — Efficient linear pass through the primary input collection.
+- **Space Complexity:** O(N) — Appropriate auxiliary memory for required state storage and lookups.
 
-### 2. Correctness & Edge Cases
-- **Standard Cases:** The current solution handles standard scenarios for **${prob}**.
-- **Edge Cases to Watch:**
-  - Empty or single-element inputs.
-  - Large boundary input sizes and negative numbers.
-  - Duplicates in input arrays.
+### ✅ Approach & Strengths
+- **Solid Logic:** The implementation correctly addresses the core requirements for **${prob}**.
+- **Clean Structure:** The logic flow is readable and straightforward to follow.
 
-### 3. Optimization Opportunities
-- Use hash maps for O(1) lookups instead of nested iterations.
-- Minimize redundant allocations inside loops.
-- Add early boundary guard checks.
+### 🔍 Practical Edge Cases & Observations
+- **Input Boundaries:** Handles normal arrays and expected ranges effectively.
+- **Good Practices:** Handles standard edge cases gracefully; consider empty or single-element inputs if applicable under problem constraints.
 
-### 4. Code Explanation
-- The ${lang} implementation solves the problem by iterating elements and tracking required state to guarantee correct results.`;
+### 💡 Constructive Tips
+- Current approach is solid and well-structured for standard use cases.
+- Consider standard library lookups or hash maps for constant-time lookups if working with very large datasets.
+
+### 📝 Summary
+- Well done! This ${lang} implementation is clean, practical, and effectively solves the problem.`;
 }
 
 async function callAiWithKey(apiKey, prompt) {
@@ -1328,7 +1401,7 @@ async function callAiWithKey(apiKey, prompt) {
       messages: [
         {
           role: "system",
-          content: "You are an expert algorithmic technical reviewer. Provide a strictly concise, structured review with clear bullet points. Avoid conversational filler, introductory greetings, or boilerplate. Keep explanations compact and high-signal."
+          content: "You are a supportive, constructive programming mentor and code reviewer. Be encouraging, balanced, and practical rather than overly strict or harsh. Do not harshly penalize working or beginner-friendly solutions or flag theoretical non-issues that standard constraints rule out. Highlight what works well, give fair and realistic complexity evaluations, and offer gentle, actionable suggestions only where truly helpful."
         },
         { role: "user", content: prompt }
       ]
@@ -1442,7 +1515,7 @@ async function runAiAnalysis(options = {}) {
   const desc = problemDescription.textContent || "";
   const langName = LANGUAGE_CONFIG[currentLanguage]?.name || currentLanguage;
 
-  const prompt = `Analyze this ${langName} solution for the problem "${problem}".
+  const prompt = `Review this ${langName} solution for the problem "${problem}".
 
 Problem Context:
 ${desc.slice(0, 450)}
@@ -1452,19 +1525,22 @@ Solution Code:
 ${code}
 \`\`\`
 
-Provide a strictly concise, structured technical review formatted in markdown with bullet points:
+Provide a supportive, constructive, and balanced technical review formatted in clean markdown:
 ### ⏱️ Time & Space Complexity
-- **Time Complexity:** O(...) — (one-sentence rationale)
-- **Space Complexity:** O(...) — (one-sentence rationale)
+- **Time Complexity:** O(...) — (clear, realistic rationale)
+- **Space Complexity:** O(...) — (clear, realistic rationale)
 
-### ⚠️ Bugs & Edge Cases
-- (1-2 bullet points: potential edge cases like empty input, overflows, or state bugs; if none, state "Clean")
+### ✅ Approach & Strengths
+- (1-2 bullet points highlighting what the solution does well and validating the approach)
 
-### 💡 Key Optimization
-- (1-2 bullet points on the most impactful optimization or alternative approach)
+### 🔍 Practical Edge Cases & Observations
+- (1-2 friendly bullet points on practical edge cases or boundary conditions; if the solution is solid, praise it as clean and robust)
+
+### 💡 Constructive Tips
+- (1-2 gentle, optional tips for clarity, idiomatic style, or optimizations; do not dismiss simpler or working solutions)
 
 ### 📝 Summary
-- (1-2 sentences summarizing the core idea)`;
+- (1-2 encouraging sentences summarizing the overall solution)`;
 
   try {
     const resultText = await callAiWithKey(cleanKey, prompt);

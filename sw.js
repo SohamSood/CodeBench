@@ -3,7 +3,7 @@
 // Caches core static assets for offline capability without intercepting Judge0 API or problem assets
 // ===================================================================
 
-const CACHE_NAME = "codebench-cache-v5";
+const CACHE_NAME = "codebench-cache-v6";
 const STATIC_ASSETS = [
   "./",
   "./index.html",
